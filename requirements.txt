@@ -1,0 +1,11 @@
+happytransformer==2.4.1
+pyTelegramBotAPI==4.12.0
+transformers==4.30.2
+httpx~=0.24.1
+cryptography>=39.0.1; extra == 'passport'
+httpx[socks]; extra == 'socks'
+httpx[http2]; extra == 'http2'
+aiolimiter~=1.1.0; extra == 'rate-limiter'
+tornado~=6.2; extra == 'webhooks'
+cachetools~=5.3.1; extra == 'callback-data'
+APScheduler~=3.10.1; extra == 'job-queue'
