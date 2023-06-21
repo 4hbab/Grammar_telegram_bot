@@ -3,15 +3,17 @@ import tempfile
 import textwrap
 from typing import List
 
+import requests
 import speech_recognition as sr
-import telebot
+from flask import Flask, request
 from happytransformer import HappyTextToText, TTSettings
 from pydub import AudioSegment
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, T5Tokenizer
 
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
+VERIFY_TOKEN = os.environ.get('VERIFY_TOKEN')
+ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
 
-bot = telebot.TeleBot(BOT_TOKEN)
+app = Flask(__name__)
 
 # Grammar correction
 happy_tt = HappyTextToText("T5", "vennify/t5-base-grammar-correction")
@@ -38,14 +40,47 @@ def split_text_into_chunks(text: str, max_chunk_size: int = 250) -> List[str]:
     return textwrap.wrap(text, max_chunk_size, break_long_words=True)
 
 
-@bot.message_handler(commands=['start', 'hello'])
-def send_welcome(message):
-    bot.reply_to(message, "Howdy, how are you doing?")
+@app.route('/webhook', methods=['GET', 'POST'])
+def webhook():
+    if request.method == 'GET':
+        # Facebook Messenger verification
+        if request.args.get('hub.verify_token') == VERIFY_TOKEN:
+            return request.args.get('hub.challenge')
+        else:
+            return 'Invalid verification token'
+    elif request.method == 'POST':
+        data = request.json
+        for entry in data['entry']:
+            for messaging_event in entry['messaging']:
+                if 'message' in messaging_event:
+                    sender_id = messaging_event['sender']['id']
+                    message = messaging_event['message']
+
+                    if 'text' in message:
+                        text = message['text']
+                        echo_all(sender_id, text)
+                    elif 'attachments' in message:
+                        attachments = message['attachments']
+                        handle_voice(
+                            sender_id, attachments[0]['payload']['url'])
+
+        return 'OK'
 
 
-@bot.message_handler(func=lambda msg: True)
-def echo_all(message):
-    input_text = message.text
+def send_message(sender_id, message):
+    payload = {
+        'recipient': {'id': sender_id},
+        'message': {'text': message}
+    }
+    response = requests.post(
+        f'https://graph.facebook.com/v14.0/me/messages?access_token={ACCESS_TOKEN}',
+        json=payload
+    )
+    if response.status_code != 200:
+        print(f"Failed to send message: {response.text}")
+
+
+def echo_all(sender_id, input_text):
     first_word = input_text.split()[0].lower()
 
     def paraphrasing(input_text):
@@ -75,7 +110,7 @@ def echo_all(message):
             result_texts.append(result.text)
 
         corrected_text = ' '.join(result_texts)
-        bot.reply_to(message, corrected_text)
+        send_message(sender_id, corrected_text)
 
     elif first_word == "paraphrase":
         input_text = f"{input_text[11:]}"
@@ -84,33 +119,27 @@ def echo_all(message):
         for idx, paraphrase in enumerate(paraphrases, start=1):
             response_text += "-" * 50 + "\n\n"
             response_text += f"{idx}. " + paraphrase + "\n\n"
-        bot.reply_to(message, response_text)
+        send_message(sender_id, response_text)
 
     elif first_word == "summary":
         input_text = f"{input_text[11:]}"
         corrected_text = happy_tt.generate_text(
             input_text, args=top_k_sampling_settings)
-        bot.reply_to(message, corrected_text.text)
+        send_message(sender_id, corrected_text.text)
     else:
-        bot.reply_to(
-            message, "Please start your message with either 'correction', 'paraphrase' or 'summary'.")
+        send_message(
+            sender_id, "Please start your message with either 'correction', 'paraphrase' or 'summary'.")
 
 
-@bot.message_handler(content_types=['voice'])
-def handle_voice(message):
+def handle_voice(sender_id, voice_url):
     # Download the voice message file
-    voice_file = bot.get_file(message.voice.file_id)
-
-    # Create a temporary file to save the voice message
+    response = requests.get(voice_url)
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         file_path = temp_file.name
 
-    # Download the voice message file to the temporary location
-    downloaded_file = bot.download_file(voice_file.file_path)
-
     # Save the downloaded file to the temporary location
     with open(file_path, 'wb') as f:
-        f.write(downloaded_file)
+        f.write(response.content)
 
     # Convert the audio file to the WAV format using pydub
     audio = AudioSegment.from_file(file_path, format="ogg")
@@ -123,10 +152,13 @@ def handle_voice(message):
         audio_data = r.record(source)
         text = r.recognize_google(audio_data)
 
-    # Pass the text to the existing message handler function
-    message.text = text
-    print(message)
-    echo_all(message)
+    # Pass the text to the echo_all function
+    echo_all(sender_id, text)
+
+    # Clean up the temporary files
+    os.remove(file_path)
+    os.remove(wav_file_path)
 
 
-bot.infinity_polling(timeout=10, long_polling_timeout=5)
+if __name__ == '__main__':
+    app.run()
