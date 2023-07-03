@@ -6,6 +6,10 @@ pyaudio==0.2.13
 pydub==0.25.1
 flask==2.3.2
 twilio==8.3.0
+openai
+python-dotenv
+streamlit
+langchain
 ffmpeg-downloader==0.0.4
 httpx~=0.24.1
 cryptography>=39.0.1; extra == 'passport'
