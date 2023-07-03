@@ -6,6 +6,8 @@ import speech_recognition as sr
 import telebot
 from dotenv import load_dotenv
 from pydub import AudioSegment
+from telebot import types
+from telebot.types import Message
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -30,8 +32,8 @@ def grammar_correction(input_text):
 def paraphrasing(input_text):
     response = openai.Completion.create(
         engine="text-davinci-002",
-        prompt=f"Generate 5 diverse paraphrase of the following sentence:\n\n{input_text}",
-        temperature=0.5,
+        prompt=f"Generate a paraphrase of the following sentence:\n\n{input_text}",
+        temperature=0.7,
         max_tokens=200
     )
     return response.choices[0].text.strip()
@@ -47,33 +49,80 @@ def summarizing(input_text):
     return response.choices[0].text.strip()
 
 
-@bot.message_handler(commands=['start', 'hello'])
+@bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Howdy, how are you doing?")
+    markup = types.ReplyKeyboardMarkup(row_width=1)
+    start_button = types.KeyboardButton('Start')
+    markup.add(start_button)
+
+    bot.send_message(
+        message.chat.id,
+        '🐬Welcome! Press Start to begin.',
+        reply_markup=markup
+    )
+
+
+user_states = {}
 
 
 @bot.message_handler(func=lambda msg: True)
 def echo_all(message):
+    input_text = message.text.lower()
+
+    if message.text.lower() == 'start':
+        markup = types.ReplyKeyboardMarkup(row_width=1)
+        correction_button = types.KeyboardButton('Correction')
+        paraphrase_button = types.KeyboardButton('Paraphrase')
+        summary_button = types.KeyboardButton('Summary')
+        markup.add(correction_button, paraphrase_button, summary_button)
+
+        bot.send_message(
+            message.chat.id,
+            'Welcome to the bot! What would you like to do?',
+            reply_markup=markup
+        )
+
+    elif input_text == "correction":
+        bot.reply_to(message, 'Please enter the text you want to correct.')
+        user_states[message.chat.id] = 'correction'
+
+    elif input_text == "paraphrase":
+        bot.reply_to(
+            message, 'Please enter the sentence you want to paraphrase.')
+        user_states[message.chat.id] = 'paraphrase'
+
+    elif input_text == "summary":
+        bot.reply_to(
+            message, 'Please enter the paragraph you want to summarize.')
+        user_states[message.chat.id] = 'summary'
+
+    else:
+        handle_text(message)
+
+
+@bot.message_handler(func=lambda msg: True, content_types=['text'])
+def handle_text(message):
     input_text = message.text
-    first_word = input_text.split()[0].lower()
+    user_state = user_states.get(message.chat.id)
 
-    if first_word == "correction":
-        corrected_text = grammar_correction(input_text[11:])
+    if user_state == 'correction':
+        corrected_text = grammar_correction(input_text)
         bot.reply_to(message, corrected_text)
+        user_states[message.chat.id] = None
 
-    elif first_word == "paraphrase":
-        paraphrased_text = paraphrasing(input_text[11:])
+    elif user_state == 'paraphrase':
+        paraphrased_text = paraphrasing(input_text)
         bot.reply_to(message, paraphrased_text)
+        user_states[message.chat.id] = None
 
-    elif first_word == "summary":
-        # OpenAI does not directly support text summarization
-        # You might need to use a different model or service for this task
-        summarized_text = summarizing(input_text[11:])
+    elif user_state == 'summary':
+        summarized_text = summarizing(input_text)
         bot.reply_to(message, summarized_text)
+        user_states[message.chat.id] = None
 
     else:
         bot.reply_to(
-            message, "Please start your message with either 'correction', 'paraphrase' or 'summary'.")
+            message, "Please select one of the options by clicking the buttons\n\n or\n\n Start the sentence with the keyword 'Correction', 'Paraphrase' or 'Summary'")
 
 
 @bot.message_handler(content_types=['voice'])
