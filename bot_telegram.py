@@ -14,6 +14,7 @@ from telebot.types import Message
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+DATABASE_URL = os.getenv("DATABASE_URL")
 openai.api_key = OPENAI_API_KEY
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -24,7 +25,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 def grammar_correction(input_text):
     response = openai.Completion.create(
         engine="text-davinci-002",
-        prompt=f"Ouput only one sentence only correcting the grammar of the following text:\n\n{input_text}",
+        prompt=f"Generate a grammar correction of the following sentence:\n\n{input_text}",
         temperature=0.5,
         max_tokens=200
     )
@@ -50,9 +51,7 @@ def summarizing(input_text):
 
 def save_user_data(username, phone_number):
     # Establish a connection to the PostgreSQL database
-    conn = psycopg2.connect(
-        "postgres://edvive:a9YB82uJ2SfEvGK8rPmNfbadvVDxYaKM@dpg-cii1fctgkuvojjds9ulg-a.singapore-postgres.render.com/grammar_bot_6uls"
-    )
+    conn = psycopg2.connect(f"{DATABASE_URL}")
 
     # Create a cursor object to interact with the database
     cursor = conn.cursor()
@@ -68,9 +67,7 @@ def save_user_data(username, phone_number):
     conn.close()
 
 def save_texts(text):
-    conn = psycopg2.connect(
-        "postgres://edvive:a9YB82uJ2SfEvGK8rPmNfbadvVDxYaKM@dpg-cii1fctgkuvojjds9ulg-a.singapore-postgres.render.com/grammar_bot_6uls"
-    )
+    conn = psycopg2.connect(f"{DATABASE_URL}")
     cur = conn.cursor()
     if text.startswith("Corrected"):
         updated_text = text.replace("Corrected: ", "")
