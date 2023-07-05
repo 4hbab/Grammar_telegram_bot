@@ -89,14 +89,11 @@ def send_welcome(message):
     start_button = types.KeyboardButton('Start')
     # markup.add(start_button)
 
-    bot.send_message(
-        message.chat.id,
-        "🌟 Drumroll 🌟 Guess who's here to boost your spoken English?\n\nIt's me, Dolphi! Your fantastic language learning buddy!!!!! 🐬 Let's dive into the world of improvement together!",
+    bot.send_animation(
+        chat_id=message.chat.id,
+        animation="https://edvive.s3.ap-southeast-1.amazonaws.com/dolphi.gif",
+        caption="🌟 Drumroll 🌟 Guess who's here to boost your spoken English?\n\nIt's me, Dolphi! Your fantastic language learning buddy!!!!! 🐬 Let's dive into the world of improvement together!\n\nAlrighty, to get started, I'd love to know your name! 📝 Just type it in, and we'll be friends in no time!",
         reply_markup=markup
-    )
-    bot.send_message(
-        message.chat.id,
-        "Alrighty, to get started, I'd love to know your name! 📝 Just type it in, and we'll be friends in no time!"
     )
 
     bot.register_next_step_handler(message, save_user_data_step)
@@ -164,6 +161,7 @@ def echo_all(message):
         user_states[message.chat.id] = 'summary'
 
     else:
+        # print(message.content_type)
         handle_text(message)
 
 
@@ -172,7 +170,7 @@ def handle_text(message):
     input_text = message.text
     user_state = user_states.get(message.chat.id)
 
-    if user_state == 'correction':
+    if user_state == 'correction' and message.content_type== 'voice':
         corrected_text = grammar_correction(input_text)
         formatted_corrected_text = f"Corrected: {corrected_text}"
         tts = gTTS(text=formatted_corrected_text, lang='en')
@@ -185,7 +183,7 @@ def handle_text(message):
         save_texts(formatted_corrected_text) 
         user_states[message.chat.id] = None
 
-    elif user_state == 'paraphrase':
+    elif user_state == 'paraphrase' and message.content_type== 'voice':
         paraphrased_text = paraphrasing(input_text)
         formatted_paraphrased_text = f"Paraphrased: {paraphrased_text}"
         tts = gTTS(text=formatted_paraphrased_text, lang='en')
@@ -198,7 +196,7 @@ def handle_text(message):
         save_texts(formatted_paraphrased_text)
         user_states[message.chat.id] = None
 
-    elif user_state == 'summary':
+    elif user_state == 'summary' and message.content_type== 'voice':
         summarized_text = summarizing(input_text)
         formatted_summarized_text = f"Summarized: {summarized_text}"
         tts = gTTS(text=formatted_summarized_text, lang='en')
@@ -213,7 +211,7 @@ def handle_text(message):
 
     else:
         bot.reply_to(
-            message, "Please select one of the options by clicking the buttons\n\n or\n\n Start the sentence with the keyword 'Correction', 'Paraphrase' or 'Summary'")
+            message, "Please select one of the options by clicking the buttons\n\n or\n\n Enter a voice input")
 
 
 @bot.message_handler(content_types=['voice'])
