@@ -31,6 +31,7 @@ def grammar_correction(input_text):
     )
     return response.choices[0].text.strip()
 
+
 def paraphrasing(input_text):
     response = openai.Completion.create(
         engine="text-davinci-002",
@@ -40,6 +41,7 @@ def paraphrasing(input_text):
     )
     return response.choices[0].text.strip()
 
+
 def summarizing(input_text):
     response = openai.Completion.create(
         engine="text-davinci-002",
@@ -48,6 +50,7 @@ def summarizing(input_text):
         max_tokens=200
     )
     return response.choices[0].text.strip()
+
 
 def save_user_data(username, phone_number):
     # Establish a connection to the PostgreSQL database
@@ -66,18 +69,22 @@ def save_user_data(username, phone_number):
     cursor.close()
     conn.close()
 
+
 def save_texts(text):
     conn = psycopg2.connect(f"{DATABASE_URL}")
     cur = conn.cursor()
     if text.startswith("Corrected"):
         updated_text = text.replace("Corrected: ", "")
-        cur.execute("UPDATE users SET corrected_texts = array_append(corrected_texts, %s)", (updated_text,))
+        cur.execute(
+            "UPDATE users SET corrected_texts = array_append(corrected_texts, %s)", (updated_text,))
     elif text.startswith("Paraphrased"):
         updated_text = text.replace("Paraphrased: ", "")
-        cur.execute("UPDATE users SET paraphrased_texts = array_append(paraphrased_texts, %s)", (updated_text,))
+        cur.execute(
+            "UPDATE users SET paraphrased_texts = array_append(paraphrased_texts, %s)", (updated_text,))
     elif text.startswith("Summarized"):
         updated_text = text.replace("Summarized: ", "")
-        cur.execute("UPDATE users SET summarized_texts = array_append(summarized_texts, %s)", (updated_text,))
+        cur.execute(
+            "UPDATE users SET summarized_texts = array_append(summarized_texts, %s)", (updated_text,))
     conn.commit()
     cur.close()
     conn.close()
@@ -105,19 +112,19 @@ def save_user_data_step(message):
 
     # Create a custom keyboard
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
-    phone_button = types.KeyboardButton('Share Phone Number', request_contact=True)
+    phone_button = types.KeyboardButton(
+        'Share Phone Number', request_contact=True)
     markup.add(phone_button)
 
     # Ask the user to share their phone number
     bot.send_message(
-        message.chat.id, 
-        f"Pleasure to meet you, {username}! 🤗 Now, could you kindly share your phone number with me? Don't worry, I won't be calling at odd hours—I'm just eager to help you on your language journey!", 
+        message.chat.id,
+        f"Pleasure to meet you, {username}! 🤗 Now, could you kindly share your phone number with me? Don't worry, I won't be calling at odd hours—I'm just eager to help you on your language journey!",
         reply_markup=markup
     )
 
     # Register the next step handler to handle the user's response
     bot.register_next_step_handler(message, save_phone_number_step, username)
-
 
 
 def save_phone_number_step(message, username):
@@ -138,6 +145,7 @@ def save_phone_number_step(message, username):
 
     # Reset the user's state
     user_states[message.chat.id] = None
+
 
 user_states = {}
 
@@ -170,7 +178,7 @@ def handle_text(message):
     input_text = message.text
     user_state = user_states.get(message.chat.id)
 
-    if user_state == 'correction' and message.content_type== 'voice':
+    if user_state == 'correction' and message.content_type == 'voice':
         corrected_text = grammar_correction(input_text)
         formatted_corrected_text = f"Corrected: {corrected_text}"
         tts = gTTS(text=formatted_corrected_text, lang='en')
@@ -180,10 +188,10 @@ def handle_text(message):
         bot.reply_to(message, formatted_corrected_text)
         audio.close()  # Close the file before deleting
         os.remove('corrected_text.mp3')
-        save_texts(formatted_corrected_text) 
+        save_texts(formatted_corrected_text)
         user_states[message.chat.id] = None
 
-    elif user_state == 'paraphrase' and message.content_type== 'voice':
+    elif user_state == 'paraphrase' and message.content_type == 'voice':
         paraphrased_text = paraphrasing(input_text)
         formatted_paraphrased_text = f"Paraphrased: {paraphrased_text}"
         tts = gTTS(text=formatted_paraphrased_text, lang='en')
@@ -192,11 +200,11 @@ def handle_text(message):
         bot.send_voice(chat_id=message.chat.id, voice=audio)
         bot.reply_to(message, formatted_paraphrased_text)
         audio.close()  # Close the file before deleting
-        os.remove('paraphrased_text.mp3') 
+        os.remove('paraphrased_text.mp3')
         save_texts(formatted_paraphrased_text)
         user_states[message.chat.id] = None
 
-    elif user_state == 'summary' and message.content_type== 'voice':
+    elif user_state == 'summary' and message.content_type == 'voice':
         summarized_text = summarizing(input_text)
         formatted_summarized_text = f"Summarized: {summarized_text}"
         tts = gTTS(text=formatted_summarized_text, lang='en')
