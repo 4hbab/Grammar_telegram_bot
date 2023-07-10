@@ -258,7 +258,7 @@ def handle_text(message):
 
     else:
         bot.reply_to(
-            message, "Please select one of the options by clicking the buttons\n\n or\n\n Enter a voice input")
+            message, "Audio please! 🎙️💬 It helps me enhance your spoken English. Let's improve together! 🌟🗣️")
 
 
 @bot.message_handler(content_types=['voice'])
