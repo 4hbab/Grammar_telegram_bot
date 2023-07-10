@@ -1,10 +1,12 @@
 import os
 import tempfile
+import uuid
 
 import openai
 import psycopg2
 import speech_recognition as sr
 import telebot
+from aamarpay.aamarpay import aamarPay
 from dotenv import load_dotenv
 from gtts import gTTS
 from pydub import AudioSegment
@@ -50,6 +52,16 @@ def summarizing(input_text):
         max_tokens=200
     )
     return response.choices[0].text.strip()
+
+
+def initiate_payment(amount, transaction_id):
+    pay = aamarPay(isSandbox=True, transactionAmount=amount,
+                   transactionID=transaction_id, storeID='edvive', signatureKey='5729e8911563793773321ac8d8ac85bb')
+    pay.success_url = "<your-success-url>"
+    pay.failed_url = "<your-failed-url>"
+    pay.cancel_url = "<your-cancel-url>"
+    payment_path = pay.payment()
+    return payment_path
 
 
 def save_user_data(username, phone_number):
@@ -98,10 +110,11 @@ def send_welcome(message):
 
     bot.send_animation(
         chat_id=message.chat.id,
-        animation="https://edvive.s3.ap-southeast-1.amazonaws.com/dolphi.gif",
-        caption="🌟 Drumroll 🌟 Guess who's here to boost your spoken English?\n\nIt's me, Dolphi! Your fantastic language learning buddy!!!!! 🐬 Let's dive into the world of improvement together!\n\nAlrighty, to get started, I'd love to know your name! 📝 Just type it in, and we'll be friends in no time!",
+        animation="https://edvive.s3.ap-southeast-1.amazonaws.com/dolphi2.gif",
         reply_markup=markup
     )
+    bot.send_message(
+        message.chat.id, "First things first, what's your name? Just type it in, and we'll be buddies in no time!")
 
     bot.register_next_step_handler(message, save_user_data_step)
 
@@ -119,7 +132,7 @@ def save_user_data_step(message):
     # Ask the user to share their phone number
     bot.send_message(
         message.chat.id,
-        f"Pleasure to meet you, {username}! 🤗 Now, could you kindly share your phone number with me? Don't worry, I won't be calling at odd hours—I'm just eager to help you on your language journey!",
+        f"Nice to meet you, {username}! 🤗 Now, could you share your phone number with me? Don't worry, I won't spam you—I'm just excited to assist you!",
         reply_markup=markup
     )
 
@@ -128,10 +141,7 @@ def save_user_data_step(message):
 
 
 def save_phone_number_step(message, username):
-    # Get the phone number entered by the user
     phone_number = message.contact.phone_number
-
-    # Save the user data to the database
     save_user_data(username, phone_number)
 
     # Add the keyword buttons
@@ -141,35 +151,64 @@ def save_phone_number_step(message, username):
     summary_button = types.KeyboardButton('Summary')
     markup.add(correction_button, paraphrase_button, summary_button)
     # Send a confirmation message to the user
-    bot.send_message(message.chat.id, f"Awesome sauce! 🎉 Thanks for sharing, {username}!\n\nNow, let's get to the good stuff. I have three nifty options lined up for you to level up your English skills.\n\nWhich one sparks your interest?\n\n1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your text so you can get the gist in a jiffy.\n\n Just let me know which option you're game for, and we'll begin our language adventure! 🚀💬", reply_markup=markup)
+    bot.send_message(message.chat.id, f"Awesome sauce! 🎉 Thanks for sharing, {username}!\n\nNow, let's get to the good stuff. I have three nifty options lined up for you to level up your English skills.\n\nWhich one sparks your interest?\n\n1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your audio so you can get the gist in a jiffy.\n\n Just let me know which option you're game for, and we'll begin our language adventure! 🚀💬", reply_markup=markup)
 
     # Reset the user's state
     user_states[message.chat.id] = None
+    # # Generate a unique transaction ID
+    # transaction_id = str(uuid.uuid4())
+
+    # # Redirect user to payment page before showing options
+    # payment_link = initiate_payment(600, transaction_id)
+    # bot.send_message(
+    #     message.chat.id, f"Please make a payment before continuing: {payment_link}")
+
+    # # Register the next step handler to handle the payment confirmation
+    # bot.register_next_step_handler(message, confirm_payment_step, username)
+
+
+def confirm_payment_step(message, username):
+    # Here we simulate payment confirmation. In real production code,
+    # you should confirm the payment with aamarPay's API.
+    if message.text.lower() == 'payment confirmed':
+        markup = types.ReplyKeyboardMarkup(row_width=1)
+        correction_button = types.KeyboardButton('Correction')
+        paraphrase_button = types.KeyboardButton('Paraphrase')
+        summary_button = types.KeyboardButton('Summary')
+        markup.add(correction_button, paraphrase_button, summary_button)
+
+        bot.send_message(message.chat.id, f"Great! I've got three cool options for you to choose from\n\n 1️⃣ Correction: I'll fix grammar mistakes.\n\n2️⃣ Paraphrase: Add some flair to your speech!\n\n3️⃣ Summarize: Busy? I'll give you the main points quickly.\n\nJust let me know which one you want, and let the language adventure begin! 🚀💬", reply_markup=markup)
+    else:
+        bot.send_message(
+            message.chat.id, 'Payment could not be confirmed. Please try again.')
 
 
 user_states = {}
 
 
-@bot.message_handler(func=lambda msg: True)
+@bot.message_handler(func=lambda msg: True, content_types=['text', 'voice', 'audio', 'photo', 'video', 'document', 'sticker', 'video_note', 'location', 'contact', 'new_chat_members', 'left_chat_member', 'new_chat_title', 'new_chat_photo', 'delete_chat_photo', 'group_chat_created', 'supergroup_chat_created', 'channel_chat_created', 'migrate_to_chat_id', 'migrate_from_chat_id', 'pinned_message'])
 def echo_all(message):
-    input_text = message.text.lower()
+    input_text = message.content_type
+    if message.content_type == 'text':
+        input_text = message.text.lower()
 
     if input_text == "correction":
-        bot.reply_to(message, 'Please enter the text you want to correct.')
+        bot.reply_to(
+            message, "Share the audio you want to improve for your spoken English. Let's make it shine together!")
         user_states[message.chat.id] = 'correction'
 
     elif input_text == "paraphrase":
         bot.reply_to(
-            message, 'Please enter the sentence you want to paraphrase.')
+            message, "Could you please send the text you'd like me to paraphrase? Let's jazz it up and make your English sparkle!")
         user_states[message.chat.id] = 'paraphrase'
 
     elif input_text == "summary":
         bot.reply_to(
-            message, 'Please enter the paragraph you want to summarize.')
+            message, "Share the audio you want me to summarize. I'll give you the main points quickly. Let's make your English learning easier!")
         user_states[message.chat.id] = 'summary'
 
     else:
-        # print(message.content_type)
+        # print(input_text)
         handle_text(message)
 
 
