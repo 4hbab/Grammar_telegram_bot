@@ -61,9 +61,9 @@ def initiate_payment(chat_id):
     transaction_id = str(uuid.uuid4())
     pay = aamarPay(isSandbox=True, transactionAmount=200,
                    transactionID=transaction_id)
-    pay.success_url = f"{BACKEND_URL}/payment/success?chat_id=" + chat_id
-    pay.failed_url = f"{BACKEND_URL}/payment/failed?chat_id=" + chat_id
-    pay.cancel_url = f"{BACKEND_URL}/payment/cancel?chat_id=" + chat_id
+    pay.successUrl = f"{BACKEND_URL}/payment/success?chat_id=" + chat_id
+    pay.failUrl = f"{BACKEND_URL}/payment/failed?chat_id=" + chat_id
+    pay.cancelUrl = f"{BACKEND_URL}/payment/cancel?chat_id=" + chat_id
     payment_path = pay.payment()
     return payment_path
 
@@ -76,6 +76,18 @@ def update_free_usages(id):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def fetch_paid_status(id):
+    conn = psycopg2.connect(f"{DATABASE_URL}")
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT paid_status FROM users WHERE user_id = %s", (id,))
+    paid_status = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return paid_status
 
 
 def fetch_free_usages(id):
@@ -212,11 +224,15 @@ def handle_text(message):
     user_id = int(str(message.chat.id)[-5:])
     payment_link = initiate_payment(str(message.chat.id))
     free_usages = fetch_free_usages(user_id)
+    paid_status = fetch_paid_status(user_id)
     print(message.chat.id)
 
     if free_usages == 0:
+        subscribe_button = types.InlineKeyboardButton(
+            "Subscribe Now", url=f"{payment_link}")
+        markup = types.InlineKeyboardMarkup([[subscribe_button]])
         bot.reply_to(
-            message.chat.id, "You have used up all your free usages. Please subscribe to continue using the service. 🙏🏻")
+            message.chat.id, "You have used up all your free usages. Please subscribe to continue using the service. 🙏🏻", reply_markup=markup)
 
     if message.content_type == 'text' and prev == 'voice':
         input_text = message.text.lower()
@@ -229,12 +245,15 @@ def handle_text(message):
             tts = gTTS(text=formatted_corrected_text, lang='en')
             tts.save('corrected_text.mp3')
             audio = open('corrected_text.mp3', 'rb')
-            subscribe_button = types.InlineKeyboardButton(
-                "Subscribe Now", url=f"{payment_link}")
-            free_usages_button = types.InlineKeyboardButton(
-                f"{free_usages} free usages left", callback_data='free_usages')
-            markup = types.InlineKeyboardMarkup(
-                [[subscribe_button, free_usages_button]])
+            # Rendering buttons based on conditions
+            markup = types.ReplyKeyboardMarkup(row_width=1)
+            if not paid_status:
+                subscribe_button = types.InlineKeyboardButton(
+                    "Subscribe Now", url=f"{payment_link}")
+                free_usages_button = types.InlineKeyboardButton(
+                    f"{free_usages} free usages left", callback_data='free_usages')
+                markup = types.InlineKeyboardMarkup(
+                    [[subscribe_button, free_usages_button]])
             bot.send_voice(chat_id=message.chat.id, voice=audio)
             bot.reply_to(message, formatted_corrected_text,
                          reply_markup=markup)
@@ -248,12 +267,15 @@ def handle_text(message):
             tts = gTTS(text=formatted_paraphrased_text, lang='en')
             tts.save('paraphrased_text.mp3')
             audio = open('paraphrased_text.mp3', 'rb')
-            subscribe_button = types.InlineKeyboardButton(
-                "Subscribe Now", url=f"{payment_link}")
-            free_usages_button = types.InlineKeyboardButton(
-                f"{free_usages} free usages left", callback_data='free_usages')
-            markup = types.InlineKeyboardMarkup(
-                [[subscribe_button, free_usages_button]])
+            # Rendering buttons based on conditions
+            markup = types.ReplyKeyboardMarkup(row_width=1)
+            if not paid_status:
+                subscribe_button = types.InlineKeyboardButton(
+                    "Subscribe Now", url=f"{payment_link}")
+                free_usages_button = types.InlineKeyboardButton(
+                    f"{free_usages} free usages left", callback_data='free_usages')
+                markup = types.InlineKeyboardMarkup(
+                    [[subscribe_button, free_usages_button]])
             bot.send_voice(chat_id=message.chat.id, voice=audio)
             bot.reply_to(message, formatted_paraphrased_text,
                          reply_markup=markup)
@@ -267,12 +289,15 @@ def handle_text(message):
             tts = gTTS(text=formatted_summarized_text, lang='en')
             tts.save('summarized_text.mp3')
             audio = open('summarized_text.mp3', 'rb')
-            subscribe_button = types.InlineKeyboardButton(
-                "Subscribe Now", url=f"{payment_link}")
-            free_usages_button = types.InlineKeyboardButton(
-                f"{free_usages} free usages left", callback_data='free_usages')
-            markup = types.InlineKeyboardMarkup(
-                [[subscribe_button, free_usages_button]])
+            # Rendering buttons based on conditions
+            markup = types.ReplyKeyboardMarkup(row_width=1)
+            if not paid_status:
+                subscribe_button = types.InlineKeyboardButton(
+                    "Subscribe Now", url=f"{payment_link}")
+                free_usages_button = types.InlineKeyboardButton(
+                    f"{free_usages} free usages left", callback_data='free_usages')
+                markup = types.InlineKeyboardMarkup(
+                    [[subscribe_button, free_usages_button]])
             bot.send_voice(chat_id=message.chat.id, voice=audio)
             bot.reply_to(message, formatted_summarized_text,
                          reply_markup=markup)
