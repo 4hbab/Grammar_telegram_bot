@@ -21,38 +21,39 @@ def send_telegram_message(message, chat_id):
     return response.json()
 
 
-@app.route('/payment/success', methods=['GET'])
+@app.route('/payment/success', methods=['POST'])
 def payment_success():
     # Get chat ID from the query parameters
     chat_id = request.args.get('chat_id')
     # Get payment details from the request body
     payment_details = request.json
     # Send a message to the Telegram bot
-    send_telegram_message('Payment successful: ' +
-                          str(payment_details), chat_id)
+    send_telegram_message(
+        {'message': 'Payment successful', 'payment_details': payment_details}, chat_id)
     return 'Payment successful', 200
 
 
-@app.route('/payment/failed', methods=['GET'])
+@app.route('/payment/failed', methods=['POST'])
 def payment_failed():
     # Get chat ID from the query parameters
     chat_id = request.args.get('chat_id')
     # Get payment details from the request body
     payment_details = request.json
     # Send a message to the Telegram bot
-    send_telegram_message('Payment failed: ' + str(payment_details), chat_id)
+    send_telegram_message(
+        {'message': 'Payment successful', 'payment_details': payment_details}, chat_id)
     return 'Payment failed', 200
 
 
-@app.route('/payment/cancel', methods=['GET'])
+@app.route('/payment/cancel', methods=['POST'])
 def payment_cancel():
     # Get chat ID from the query parameters
     chat_id = request.args.get('chat_id')
     # Get payment details from the request body
     payment_details = request.json
     # Send a message to the Telegram bot
-    send_telegram_message('Payment cancelled: ' +
-                          str(payment_details), chat_id)
+    send_telegram_message(
+        {'message': 'Payment successful', 'payment_details': payment_details}, chat_id)
     return 'Payment cancelled', 200
 
 
