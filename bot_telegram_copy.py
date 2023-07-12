@@ -19,6 +19,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 STORE_ID = os.getenv("STORE_ID")
 SIGNATURE_KEY = os.getenv("SIGNATURE_KEY")
+BACKEND_URL = os.getenv("BACKEND_URL")
 openai.api_key = OPENAI_API_KEY
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -60,9 +61,9 @@ def initiate_payment(chat_id):
     transaction_id = str(uuid.uuid4())
     pay = aamarPay(isSandbox=True, transactionAmount=200,
                    transactionID=transaction_id)
-    pay.success_url = "http://localhost:5000/payment/success?chat_id=" + chat_id
-    pay.failed_url = "http://localhost:5000/payment/failed?chat_id=" + chat_id
-    pay.cancel_url = "http://localhost:5000/payment/cancel?chat_id=" + chat_id
+    pay.success_url = f"{BACKEND_URL}/payment/success?chat_id=" + chat_id
+    pay.failed_url = f"{BACKEND_URL}/payment/failed?chat_id=" + chat_id
+    pay.cancel_url = f"{BACKEND_URL}/payment/cancel?chat_id=" + chat_id
     payment_path = pay.payment()
     return payment_path
 
@@ -129,14 +130,9 @@ def save_texts(text):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    markup = types.ReplyKeyboardMarkup(row_width=1)
-    start_button = types.KeyboardButton('Start')
-    # markup.add(start_button)
-
     bot.send_animation(
         chat_id=message.chat.id,
         animation="https://edvive.s3.ap-southeast-1.amazonaws.com/dolphi2.gif",
-        reply_markup=markup
     )
     bot.send_message(
         message.chat.id, "First things first, what's your name? Just type it in, and we'll be buddies in no time!")
@@ -169,6 +165,23 @@ def save_phone_number_step(message, username):
     phone_number = message.contact.phone_number
     user_id = int(str(message.chat.id)[-5:])
     save_user_data(user_id, username, phone_number)
+    payment_link = initiate_payment(str(message.chat.id))
+    free_usages = fetch_free_usages(user_id)
+
+    # Added subscription and free usages buttons
+    subscribe_button = types.InlineKeyboardButton(
+        "Subscribe Now", url=f"{payment_link}")
+    free_usages_button = types.InlineKeyboardButton(
+        f"{free_usages} free usages left", callback_data='free_usages')
+    inline_markup = types.InlineKeyboardMarkup(
+        [[subscribe_button, free_usages_button]])
+
+    # Send a message with the inline keyboard
+    bot.send_message(
+        message.chat.id,
+        f"Awesome sauce! 🎉 Thanks for sharing, {username}!\n\nNow, let's get to the good stuff. I have three nifty options lined up for you to level up your English skills.\n\nWhich one sparks your interest?",
+        reply_markup=inline_markup
+    )
 
     # Add the keyword buttons
     markup = types.ReplyKeyboardMarkup(row_width=1)
@@ -176,8 +189,13 @@ def save_phone_number_step(message, username):
     paraphrase_button = types.KeyboardButton('Paraphrase')
     summary_button = types.KeyboardButton('Summary')
     markup.add(correction_button, paraphrase_button, summary_button)
-    # Send a confirmation message to the user
-    bot.send_message(message.chat.id, f"Awesome sauce! 🎉 Thanks for sharing, {username}!\n\nNow, let's get to the good stuff. I have three nifty options lined up for you to level up your English skills.\n\nWhich one sparks your interest?\n\n1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your audio so you can get the gist in a jiffy.\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬", reply_markup=markup)
+
+    # Send another message with the reply keyboard
+    bot.send_message(
+        message.chat.id,
+        "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your audio so you can get the gist in a jiffy.\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬",
+        reply_markup=markup
+    )
 
     # Reset the user's state
     user_states[message.chat.id] = None

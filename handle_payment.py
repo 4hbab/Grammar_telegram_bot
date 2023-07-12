@@ -21,7 +21,7 @@ def send_telegram_message(message, chat_id):
     return response.json()
 
 
-@app.route('/payment/success', methods=['POST'])
+@app.route('/payment/success', methods=['GET'])
 def payment_success():
     # Get chat ID from the query parameters
     chat_id = request.args.get('chat_id')
@@ -33,7 +33,7 @@ def payment_success():
     return 'Payment successful', 200
 
 
-@app.route('/payment/failed', methods=['POST'])
+@app.route('/payment/failed', methods=['GET'])
 def payment_failed():
     # Get chat ID from the query parameters
     chat_id = request.args.get('chat_id')
@@ -44,7 +44,7 @@ def payment_failed():
     return 'Payment failed', 200
 
 
-@app.route('/payment/cancel', methods=['POST'])
+@app.route('/payment/cancel', methods=['GET'])
 def payment_cancel():
     # Get chat ID from the query parameters
     chat_id = request.args.get('chat_id')
