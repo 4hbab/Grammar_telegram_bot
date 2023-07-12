@@ -14,7 +14,7 @@ from telebot import types
 from telebot.types import Message
 
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT2_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 STORE_ID = os.getenv("STORE_ID")
@@ -212,6 +212,7 @@ def handle_text(message):
     user_id = int(str(message.chat.id)[-5:])
     payment_link = initiate_payment(str(message.chat.id))
     free_usages = fetch_free_usages(user_id)
+    print(message.chat.id)
 
     if free_usages == 0:
         bot.reply_to(

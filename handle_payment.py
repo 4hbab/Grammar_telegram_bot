@@ -7,7 +7,7 @@ from flask import Flask, request
 app = Flask(__name__)
 
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT2_TOKEN")
 
 
 def send_telegram_message(message, chat_id):
