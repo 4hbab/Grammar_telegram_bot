@@ -17,7 +17,7 @@ def update_user_paid_status(id):
     conn = psycopg2.connect(f"{DATABASE_URL}")
     cur = conn.cursor()
     cur.execute(
-        f"UPDATE users SET paid_status = TRUE WHERE user_id = {id}")
+        "UPDATE users SET paid_status = true WHERE user_id = %s", (id,))
     conn.commit()
     cur.close()
     conn.close()
@@ -38,7 +38,7 @@ def send_telegram_message(message, chat_id):
 def payment_success():
     # Get chat ID from the query parameters
     chat_id = request.args.get('chat_id')
-    user_id = int(chat_id)[-5:]
+    user_id = int(str(chat_id)[-5:])
     # Update paid status of user
     update_user_paid_status(user_id)
     # Get payment details from the request body
