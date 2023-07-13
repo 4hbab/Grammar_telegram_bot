@@ -3,7 +3,7 @@ import os
 import psycopg2
 import requests
 from dotenv import load_dotenv
-from flask import Flask, request
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
@@ -46,7 +46,7 @@ def payment_success():
     # Send a message to the Telegram bot
     send_telegram_message(
         {'text': 'Payment successful.\nCongratulations!🥳🐬👌\n\nYou can now use the bot without worrying about payments.', 'payment_details': payment_details}, chat_id)
-    return 'Payment successful', 200
+    return render_template('success.html'), 200
 
 
 @app.route('/payment/failed', methods=['POST'])
@@ -58,7 +58,7 @@ def payment_failed():
     # Send a message to the Telegram bot
     send_telegram_message(
         {'message': 'Payment successful', 'payment_details': payment_details}, chat_id)
-    return 'Payment failed', 200
+    return render_template('failed.html'), 200
 
 
 @app.route('/payment/cancel', methods=['POST'])
@@ -70,7 +70,7 @@ def payment_cancel():
     # Send a message to the Telegram bot
     send_telegram_message(
         {'message': 'Payment successful', 'payment_details': payment_details}, chat_id)
-    return 'Payment cancelled', 200
+    return render_template('cacel.html'), 200
 
 
 @app.route('/', methods=['GET'])
