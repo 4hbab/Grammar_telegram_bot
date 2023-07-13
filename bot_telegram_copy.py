@@ -63,11 +63,12 @@ def initiate_payment(chat_id):
     is_sandbox = True
     # Change the values based on the environment
     if BOT_ENV == 'production':
-        pay.storeID = STORE_ID
-        pay.signature = SIGNATURE_KEY
         is_sandbox = False
     pay = aamarPay(isSandbox=is_sandbox, transactionAmount=200,
                    transactionID=transaction_id)
+    if BOT_ENV == 'production':
+        pay.storeID = STORE_ID
+        pay.signature = SIGNATURE_KEY
     pay.successUrl = f"{BACKEND_URL}/payment/success?chat_id=" + chat_id
     pay.failUrl = f"{BACKEND_URL}/payment/failed?chat_id=" + chat_id
     pay.cancelUrl = f"{BACKEND_URL}/payment/cancel?chat_id=" + chat_id
@@ -195,30 +196,52 @@ def save_user_data_step(message):
 def save_phone_number_step(message, username):
     phone_number = message.contact.phone_number
     user_id = int(str(message.chat.id)[-5:])
-    save_user_data(user_id, username, phone_number)
     payment_link = initiate_payment(str(message.chat.id))
-    free_usages = fetch_free_usages(user_id)
-    paid_status = fetch_paid_status(user_id)
-    # Added subscription and free usages buttons
-    subscribe_button = types.InlineKeyboardButton(
-        "Subscribe Now", url=f"{payment_link}")
-    free_usages_button = types.InlineKeyboardButton(
-        f"{free_usages} free usages left", callback_data='free_usages')
-    inline_markup = types.InlineKeyboardMarkup(
-        [[subscribe_button, free_usages_button]])
 
     # Existing users
-    if count_user_phone_number(phone_number) > 1 and paid_status == False:
-        if free_usages == 0:
+    if count_user_phone_number(phone_number) >= 1:
+        free_usages = fetch_free_usages(user_id)
+        paid_status = fetch_paid_status(user_id)
+        subscribe_button = types.InlineKeyboardButton(
+            "Subscribe Now", url=f"{payment_link}")
+        free_usages_button = types.InlineKeyboardButton(
+            f"{free_usages} free usages left", callback_data='free_usages')
+        inline_markup = types.InlineKeyboardMarkup(
+            [[subscribe_button, free_usages_button]])
+        if paid_status == True:
+            # Add the keyword buttons
+            markup = types.ReplyKeyboardMarkup(row_width=1)
+            correction_button = types.KeyboardButton('Correction')
+            paraphrase_button = types.KeyboardButton('Paraphrase')
+            summary_button = types.KeyboardButton('Summary')
+            markup.add(correction_button, paraphrase_button, summary_button)
             bot.send_message(
-                f"Welcome back, {username}! 🤗 I'm so glad you're here again!\n\nYou have used up all your free usages. Please subscribe to continue using the service. 🙏🏻", reply_markup=inline_markup)
+                message.chat.id,
+                f"Welcome back, {username}! 🤗 I'm so glad you're here again!\n\nI have three nifty options lined up for you to leverage your English skills.\n\nWhich one sparks your interest?")
+            bot.send_message(
+                message.chat.id,
+                "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your audio so you can get the gist in a jiffy.\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬",
+                reply_markup=markup
+            )
+        elif free_usages == 0 and paid_status == False:
+            bot.send_message(message.chat.id,
+                             f"Welcome back, {username}! 🤗 I'm so glad you're here again!\n\nYou have used up all your free usages. Please subscribe to continue using the service. 🙏🏻", reply_markup=inline_markup)
         else:
             bot.send_message(
                 message.chat.id,
                 f"Welcome back, {username}! 🤗 I'm so glad you're here again!\n\nI have three nifty options lined up for you to leverage your English skills.\n\nWhich one sparks your interest?",
                 reply_markup=inline_markup)
-    # Send a message with the inline keyboard
+    # New users
     else:
+        save_user_data(user_id, username, phone_number)
+        free_usages = fetch_free_usages(user_id)
+        paid_status = fetch_paid_status(user_id)
+        subscribe_button = types.InlineKeyboardButton(
+            "Subscribe Now", url=f"{payment_link}")
+        free_usages_button = types.InlineKeyboardButton(
+            f"{free_usages} free usages left", callback_data='free_usages')
+        inline_markup = types.InlineKeyboardMarkup(
+            [[subscribe_button, free_usages_button]])
         bot.send_message(
             message.chat.id,
             f"Awesome sauce! 🎉 Thanks for sharing, {username}!\n\nNow, let's get to the good stuff. I have three nifty options lined up for you to level up your English skills.\n\nWhich one sparks your interest?",
@@ -262,7 +285,8 @@ def handle_text(message):
             "Subscribe Now", url=f"{payment_link}")
         markup = types.InlineKeyboardMarkup([[subscribe_button]])
         bot.reply_to(
-            message.chat.id, "You have used up all your free usages. Please subscribe to continue using the service. 🙏🏻", reply_markup=markup)
+            message, "You have used up all your free usages. Please subscribe to continue using the service. 🙏🏻", reply_markup=markup)
+        return
 
     if message.content_type == 'text' and prev == 'voice':
         input_text = message.text.lower()
@@ -335,9 +359,9 @@ def handle_text(message):
             os.remove('summarized_text.mp3')
             save_texts(formatted_summarized_text)
 
-        if free_usages == 1:
-            bot.send_message(
-                "You have 1 free usage left. Please subscribe to continue using the service. 🙏🏻")
+        if free_usages == 1 and paid_status == False:
+            bot.send_message(message.chat.id,
+                             "You have 1 free usage left. Please subscribe to continue using the service. 🙏🏻")
 
         user_states[message.chat.id] = None
         prev_states[message.chat.id] = None
