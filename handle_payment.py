@@ -45,7 +45,7 @@ def payment_success():
     payment_details = request.json
     # Send a message to the Telegram bot
     send_telegram_message(
-        {'text': 'Payment successful', 'payment_details': payment_details}, chat_id)
+        {'text': 'Payment successful.\nCongratulations!🥳🐬👌\n\nYou can now use the bot without worrying about payments.', 'payment_details': payment_details}, chat_id)
     return 'Payment successful', 200
 
 

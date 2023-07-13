@@ -227,7 +227,7 @@ def handle_text(message):
     paid_status = fetch_paid_status(user_id)
     print(message.chat.id)
 
-    if free_usages == 0:
+    if free_usages == 0 and paid_status == False:
         subscribe_button = types.InlineKeyboardButton(
             "Subscribe Now", url=f"{payment_link}")
         markup = types.InlineKeyboardMarkup([[subscribe_button]])
