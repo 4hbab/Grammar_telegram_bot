@@ -57,7 +57,7 @@ def payment_failed():
     payment_details = request.json
     # Send a message to the Telegram bot
     send_telegram_message(
-        {'message': 'Payment successful', 'payment_details': payment_details}, chat_id)
+        {'message': 'Payment failed', 'payment_details': payment_details}, chat_id)
     return render_template('failed.html'), 200
 
 
@@ -69,7 +69,7 @@ def payment_cancel():
     payment_details = request.json
     # Send a message to the Telegram bot
     send_telegram_message(
-        {'message': 'Payment successful', 'payment_details': payment_details}, chat_id)
+        {'message': 'Payment cancelled', 'payment_details': payment_details}, chat_id)
     return render_template('cacel.html'), 200
 
 
