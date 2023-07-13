@@ -14,7 +14,7 @@ from telebot import types
 from telebot.types import Message
 
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT2_TOKEN")
+BOT_TOKEN = os.getenv("BOT1_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
 STORE_ID = os.getenv("STORE_ID")
@@ -209,19 +209,12 @@ def save_phone_number_step(message, username):
         inline_markup = types.InlineKeyboardMarkup(
             [[subscribe_button, free_usages_button]])
         if paid_status == True:
-            # Add the keyword buttons
-            markup = types.ReplyKeyboardMarkup(row_width=1)
-            correction_button = types.KeyboardButton('Correction')
-            paraphrase_button = types.KeyboardButton('Paraphrase')
-            summary_button = types.KeyboardButton('Summary')
-            markup.add(correction_button, paraphrase_button, summary_button)
             bot.send_message(
                 message.chat.id,
                 f"Welcome back, {username}! 🤗 I'm so glad you're here again!\n\nI have three nifty options lined up for you to leverage your English skills.\n\nWhich one sparks your interest?")
             bot.send_message(
                 message.chat.id,
-                "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your audio so you can get the gist in a jiffy.\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬",
-                reply_markup=markup
+                "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your audio so you can get the gist in a jiffy.\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬"
             )
         elif free_usages == 0 and paid_status == False:
             bot.send_message(message.chat.id,

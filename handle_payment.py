@@ -9,7 +9,7 @@ from flask import Flask, render_template, request
 app = Flask(__name__)
 
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT2_TOKEN")
+BOT_TOKEN = os.getenv("BOT1_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
