@@ -335,6 +335,10 @@ def handle_text(message):
             os.remove('summarized_text.mp3')
             save_texts(formatted_summarized_text)
 
+        if free_usages == 1:
+            bot.send_message(
+                "You have 1 free usage left. Please subscribe to continue using the service. 🙏🏻")
+
         user_states[message.chat.id] = None
         prev_states[message.chat.id] = None
     else:

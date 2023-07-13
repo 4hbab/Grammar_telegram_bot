@@ -1,3 +1,4 @@
+import datetime
 import os
 
 import psycopg2
@@ -18,6 +19,10 @@ def update_user_paid_status(id):
     cur = conn.cursor()
     cur.execute(
         "UPDATE users SET paid_status = true WHERE user_id = %s", (id,))
+    # Set the subscription date to today's date
+    today = datetime.date.today()
+    cur.execute(
+        "UPDATE users SET subscription_date = %s WHERE user_id = %s", (today, id))
     conn.commit()
     cur.close()
     conn.close()
