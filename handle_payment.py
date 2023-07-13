@@ -70,7 +70,7 @@ def payment_cancel():
     # Send a message to the Telegram bot
     send_telegram_message(
         {'message': 'Payment cancelled', 'payment_details': payment_details}, chat_id)
-    return render_template('cacel.html'), 200
+    return render_template('cancel.html'), 200
 
 
 @app.route('/', methods=['GET'])
