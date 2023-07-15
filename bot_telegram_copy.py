@@ -225,8 +225,8 @@ def save_phone_number_step(message, username):
     markup = types.ReplyKeyboardMarkup(row_width=1)
     correction_button = types.KeyboardButton('Correction')
     paraphrase_button = types.KeyboardButton('Paraphrase')
-    summary_button = types.KeyboardButton('Summary')
-    markup.add(correction_button, paraphrase_button, summary_button)
+    # summary_button = types.KeyboardButton('Summary')
+    markup.add(correction_button, paraphrase_button)
 
     # Existing users
     if count_user_phone_number(phone_number) >= 1:
@@ -245,7 +245,7 @@ def save_phone_number_step(message, username):
                 f"Welcome back, {username}! 🤗 I'm so glad you're here again!\n\nI have three nifty options lined up for you to leverage your English skills.\n\nWhich one sparks your interest?")
             bot.send_message(
                 message.chat.id,
-                "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your audio so you can get the gist in a jiffy.\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬", reply_markup=markup)
+                "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬", reply_markup=markup)
 
         elif free_usages == 0 and paid_status == False:
             bot.send_message(message.chat.id,
@@ -258,7 +258,7 @@ def save_phone_number_step(message, username):
             # Send another message with the reply keyboard
             bot.send_message(
                 message.chat.id,
-                "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your audio so you can get the gist in a jiffy.\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬",
+                "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬",
                 reply_markup=markup
             )
     # New users
@@ -281,7 +281,7 @@ def save_phone_number_step(message, username):
         # Send another message with the reply keyboard
         bot.send_message(
             message.chat.id,
-            "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\n3️⃣ Summarize: Busy day? No problem! Let me condense your audio so you can get the gist in a jiffy.\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬",
+            "1️⃣ Correction: I'll polish your grammar and fix those sneaky mistakes.\n\n2️⃣ Paraphrase: Want to add some flair to your speech? I'll help you rephrase it in style!\n\nJust send me an audio, and we'll begin our language adventure! 🚀💬",
             reply_markup=markup
         )
 
@@ -360,27 +360,27 @@ def handle_text(message):
             os.remove('paraphrased_text.mp3')
             save_texts(formatted_paraphrased_text)
 
-        elif input_text == 'summary':
-            summarized_text = summarizing(text)
-            formatted_summarized_text = f"Summarized: {summarized_text}"
-            tts = gTTS(text=formatted_summarized_text, lang='en')
-            tts.save('summarized_text.mp3')
-            audio = open('summarized_text.mp3', 'rb')
-            # Rendering buttons based on conditions
-            markup = types.ReplyKeyboardMarkup(row_width=1)
-            if not paid_status:
-                subscribe_button = types.InlineKeyboardButton(
-                    "Subscribe Now", url=f"{payment_link}")
-                free_usages_button = types.InlineKeyboardButton(
-                    f"{free_usages} free usages left", callback_data='free_usages')
-                markup = types.InlineKeyboardMarkup(
-                    [[subscribe_button, free_usages_button]])
-            bot.send_voice(chat_id=message.chat.id, voice=audio)
-            bot.reply_to(message, formatted_summarized_text,
-                         reply_markup=markup)
-            audio.close()  # Close the file before deleting
-            os.remove('summarized_text.mp3')
-            save_texts(formatted_summarized_text)
+        # elif input_text == 'summary':
+        #     summarized_text = summarizing(text)
+        #     formatted_summarized_text = f"Summarized: {summarized_text}"
+        #     tts = gTTS(text=formatted_summarized_text, lang='en')
+        #     tts.save('summarized_text.mp3')
+        #     audio = open('summarized_text.mp3', 'rb')
+        #     # Rendering buttons based on conditions
+        #     markup = types.ReplyKeyboardMarkup(row_width=1)
+        #     if not paid_status:
+        #         subscribe_button = types.InlineKeyboardButton(
+        #             "Subscribe Now", url=f"{payment_link}")
+        #         free_usages_button = types.InlineKeyboardButton(
+        #             f"{free_usages} free usages left", callback_data='free_usages')
+        #         markup = types.InlineKeyboardMarkup(
+        #             [[subscribe_button, free_usages_button]])
+        #     bot.send_voice(chat_id=message.chat.id, voice=audio)
+        #     bot.reply_to(message, formatted_summarized_text,
+        #                  reply_markup=markup)
+        #     audio.close()  # Close the file before deleting
+        #     os.remove('summarized_text.mp3')
+        #     save_texts(formatted_summarized_text)
 
         if free_usages == 1 and paid_status == False:
             bot.send_message(message.chat.id,
@@ -457,8 +457,8 @@ def handle_voice(message):
     markup = types.ReplyKeyboardMarkup(row_width=1)
     correction_button = types.KeyboardButton('Correction')
     paraphrase_button = types.KeyboardButton('Paraphrase')
-    summary_button = types.KeyboardButton('Summary')
-    markup.add(correction_button, paraphrase_button, summary_button)
+    # summary_button = types.KeyboardButton('Summary')
+    markup.add(correction_button, paraphrase_button)
 
     bot.send_message(
         message.chat.id,
