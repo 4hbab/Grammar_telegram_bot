@@ -219,6 +219,7 @@ def save_phone_number_step(message, username):
     phone_number = message.contact.phone_number
     user_id = int(str(message.chat.id)[-5:])
     payment_link = initiate_payment(str(message.chat.id))
+    duration_left = fetch_duration_left(user_id)
 
     # Add the keyword buttons
     markup = types.ReplyKeyboardMarkup(row_width=1)
@@ -238,7 +239,7 @@ def save_phone_number_step(message, username):
             f"{free_usages} free usages left", callback_data='free_usages')
         inline_markup = types.InlineKeyboardMarkup(
             [[subscribe_button, free_usages_button]])
-        if paid_status == True:
+        if paid_status == True and duration_left > 0:
             bot.send_message(
                 message.chat.id,
                 f"Welcome back, {username}! 🤗 I'm so glad you're here again!\n\nI have three nifty options lined up for you to leverage your English skills.\n\nWhich one sparks your interest?")
