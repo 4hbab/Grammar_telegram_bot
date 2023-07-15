@@ -88,6 +88,16 @@ def count_user_phone_number(phone_number):
     return count
 
 
+def update_duration(time, id):
+    conn = psycopg2.connect(f"{DATABASE_URL}")
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET duration_left = duration_left + %s WHERE user_id = %s", (time, id))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 def update_free_usages(id):
     conn = psycopg2.connect(f"{DATABASE_URL}")
     cur = conn.cursor()
@@ -96,6 +106,18 @@ def update_free_usages(id):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def fetch_duration_left(id):
+    conn = psycopg2.connect(f"{DATABASE_URL}")
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT duration_left FROM users WHERE user_id = %s", (id,))
+    duration_left = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return duration_left
 
 
 def fetch_paid_status(id):
@@ -205,19 +227,17 @@ def save_phone_number_step(message, username):
     summary_button = types.KeyboardButton('Summary')
     markup.add(correction_button, paraphrase_button, summary_button)
 
-    # Add the inline buttons
-    subscribe_button = types.InlineKeyboardButton(
-        "Subscribe Now", url=f"{payment_link}")
-    free_usages_button = types.InlineKeyboardButton(
-        f"{free_usages} free usages left", callback_data='free_usages')
-    inline_markup = types.InlineKeyboardMarkup(
-        [[subscribe_button, free_usages_button]])
-
     # Existing users
     if count_user_phone_number(phone_number) >= 1:
         free_usages = fetch_free_usages(user_id)
         paid_status = fetch_paid_status(user_id)
-
+        # Add the inline buttons
+        subscribe_button = types.InlineKeyboardButton(
+            "Subscribe Now", url=f"{payment_link}")
+        free_usages_button = types.InlineKeyboardButton(
+            f"{free_usages} free usages left", callback_data='free_usages')
+        inline_markup = types.InlineKeyboardMarkup(
+            [[subscribe_button, free_usages_button]])
         if paid_status == True:
             bot.send_message(
                 message.chat.id,
@@ -378,6 +398,14 @@ def handle_voice(message):
     free_usages = fetch_free_usages(user_id)
     paid_status = fetch_paid_status(user_id)
 
+    # Add the inline buttons
+    subscribe_button = types.InlineKeyboardButton(
+        "Subscribe Now", url=f"{payment_link}")
+    free_usages_button = types.InlineKeyboardButton(
+        f"{free_usages} free usages left", callback_data='free_usages')
+    inline_markup = types.InlineKeyboardMarkup(
+        [[subscribe_button, free_usages_button]])
+
     if free_usages == 0 and paid_status == False:
         payment_link = initiate_payment(str(message.chat.id))
         subscribe_button = types.InlineKeyboardButton(
@@ -402,6 +430,15 @@ def handle_voice(message):
 
     # Convert the audio file to the WAV format using pydub
     audio = AudioSegment.from_file(file_path, format="ogg")
+    # Calculate the duration of the audio file
+    duration = int(len(audio) / 1000)  # Duration in seconds
+    update_duration(duration, user_id)
+    # See how much duration is left
+    duration_left = fetch_duration_left(user_id)
+    if duration_left <= 0:
+        bot.reply_to(message.chat.id,
+                     "You have used up all your full duration. Please wait to continue using the service. 🙏🏻")
+
     wav_file_path = file_path + ".wav"
     audio.export(wav_file_path, format="wav")
 
