@@ -50,7 +50,7 @@ def payment_success():
     payment_details = request.json
     # Send a message to the Telegram bot
     send_telegram_message(
-        {'text': 'Payment successful.\nCongratulations!🥳🐬👌\n\nYou can now use the bot without worrying about payments.', 'payment_details': payment_details}, chat_id)
+        {'text': "Congratulations! 🎉 You're officially part of our language learning family! 🌟\n\nWith our premium subscription, you get 240 mins daily of grammar correction and paraphrasing magic! 💬💪\n\nWelcome to the world of language excellence! 🚀🌐", 'payment_details': payment_details}, chat_id)
     return render_template('success.html'), 200
 
 

@@ -207,7 +207,7 @@ def save_user_data_step(message):
     # Ask the user to share their phone number
     bot.send_message(
         message.chat.id,
-        f"Nice to meet you, {username}! 🤗 Now, could you share your phone number with me? Don't worry, I won't spam you—I'm just excited to assist you!",
+        f"Thanks for sharing,{username}! Ready to turn learning into adventure? 🚀\n\nCorrecting grammar glitches 📝 and spicing up speech with paraphrases 🔥 is my thing!\n\nBoost your English-speaking superpower, get 10 free mins daily, or go unlimited for 3000 BDT/month!\n\nLet's conquer new horizons together! 🌐 Share your speech as audio and Let's get started!",
         reply_markup=markup
     )
 
@@ -223,8 +223,8 @@ def save_phone_number_step(message, username):
 
     # Add the keyword buttons
     markup = types.ReplyKeyboardMarkup(row_width=1)
-    correction_button = types.KeyboardButton('Correction')
-    paraphrase_button = types.KeyboardButton('Paraphrase')
+    correction_button = types.KeyboardButton('Fix it')
+    paraphrase_button = types.KeyboardButton('Improve it')
     # summary_button = types.KeyboardButton('Summary')
     markup.add(correction_button, paraphrase_button)
 
@@ -308,7 +308,7 @@ def handle_text(message):
             "Subscribe Now", url=f"{payment_link}")
         markup = types.InlineKeyboardMarkup([[subscribe_button]])
         bot.reply_to(
-            message, "You have used up all your free usages. Please subscribe to continue using the service. 🙏🏻", reply_markup=markup)
+            message, "Free usage complete! 🎉 Unlock unlimited progress with our subscription - 3000 BDT/month for 240 mins daily. Supercharge your English-speaking skills now! 💪🚀", reply_markup=markup)
         return
 
     if message.content_type == 'text' and prev == 'voice':
@@ -455,14 +455,16 @@ def handle_voice(message):
     prev_states[message.chat.id] = 'voice'
 
     markup = types.ReplyKeyboardMarkup(row_width=1)
-    correction_button = types.KeyboardButton('Correction')
-    paraphrase_button = types.KeyboardButton('Paraphrase')
+    correction_button = types.KeyboardButton('Fix it')
+    paraphrase_button = types.KeyboardButton('Improve it')
     # summary_button = types.KeyboardButton('Summary')
     markup.add(correction_button, paraphrase_button)
 
+    bot.send_message(message.chat.id, "Awesome audio you've got there! 🎧 Now, let's take it to the next level! How would you like me to work my magic on this audio to boost your English speaking skills? 🌟")
+
     bot.send_message(
         message.chat.id,
-        "Awesome! Now, what would you like me to do with the text?",
+        "Choose your English upgrade: 'Fix It' for grammar magic 🧙‍♂️ or 'Improve It' for captivating paraphrases! ✨ Both boost speaking skills! Ready to work wonders? 🚀 Pick now and let's soar! 💫",
         reply_markup=markup
     )
 
