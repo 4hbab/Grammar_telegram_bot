@@ -1,3 +1,4 @@
+import datetime
 import os
 import tempfile
 import uuid
@@ -26,6 +27,10 @@ openai.api_key = OPENAI_API_KEY
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # These functions use OpenAI API for grammar correction, paraphrasing and summarizing
+
+user_states = {}  # To keep track of the previous converted message from voice to text
+prev_states = {}  # To keep track if the previous message was voice or not
+user_voice_durations = {}  # To keep track of the duration of the voice message
 
 
 def grammar_correction(input_text):
@@ -56,6 +61,19 @@ def summarizing(input_text):
         max_tokens=200
     )
     return response.choices[0].text.strip()
+
+
+def count_words(text):
+    return len(text.split())
+
+# Function to calculate cost per message, considering 1000 tokens for 750 words
+
+
+def calculate_cost(message, cost_per_thousand_tokens=0.02):
+    num_words = count_words(message)
+    num_tokens_estimate = (num_words / 750) * 1000
+    cost_per_token = cost_per_thousand_tokens / 1000
+    return num_tokens_estimate * cost_per_token
 
 
 def initiate_payment(chat_id):
@@ -207,7 +225,7 @@ def save_user_data_step(message):
     # Ask the user to share their phone number
     bot.send_message(
         message.chat.id,
-        f"Thanks for sharing,{username}! Ready to turn learning into adventure? 🚀\n\nCorrecting grammar glitches 📝 and spicing up speech with paraphrases 🔥 is my thing!\n\nBoost your English-speaking superpower, get 10 free mins daily, or go unlimited for 3000 BDT/month!\n\nLet's conquer new horizons together! 🌐 Share your speech as audio and Let's get started!",
+        f"Nice to meet you, {username}! 🤗 Now, could you share your phone number with me? Don't worry, I won't spam you—I'm just excited to assist you!",
         reply_markup=markup
     )
 
@@ -219,7 +237,9 @@ def save_phone_number_step(message, username):
     phone_number = message.contact.phone_number
     user_id = int(str(message.chat.id)[-5:])
     payment_link = initiate_payment(str(message.chat.id))
-    duration_left = fetch_duration_left(user_id)
+    # duration_left = fetch_duration_left(user_id)
+    user_info = user_voice_durations[user_id]
+    duration = user_info["total_duration"] < 240*60
 
     # Add the keyword buttons
     markup = types.ReplyKeyboardMarkup(row_width=1)
@@ -239,7 +259,7 @@ def save_phone_number_step(message, username):
             f"{free_usages} free usages left", callback_data='free_usages')
         inline_markup = types.InlineKeyboardMarkup(
             [[subscribe_button, free_usages_button]])
-        if paid_status == True and duration_left > 0:
+        if paid_status == True and duration:
             bot.send_message(
                 message.chat.id,
                 f"Welcome back, {username}! 🤗 I'm so glad you're here again!\n\nI have three nifty options lined up for you to leverage your English skills.\n\nWhich one sparks your interest?")
@@ -274,7 +294,7 @@ def save_phone_number_step(message, username):
             [[subscribe_button, free_usages_button]])
         bot.send_message(
             message.chat.id,
-            f"Awesome sauce! 🎉 Thanks for sharing, {username}!\n\nNow, let's get to the good stuff. I have three nifty options lined up for you to level up your English skills.\n\nWhich one sparks your interest?",
+            f"Thanks for sharing,{username}! Ready to turn learning into adventure? 🚀\n\nCorrecting grammar glitches 📝 and spicing up speech with paraphrases 🔥 is my thing!\n\nBoost your English-speaking superpower, get 10 free mins daily, or go unlimited for 3000 BDT/month!\n\nLet's conquer new horizons together! 🌐 Share your speech as audio and Let's get started!",
             reply_markup=inline_markup
         )
 
@@ -287,10 +307,6 @@ def save_phone_number_step(message, username):
 
     # Reset the user's state
     user_states[message.chat.id] = None
-
-
-user_states = {}  # To keep track of the previous converted message from voice to text
-prev_states = {}  # To keep track if the previous message was voice or not
 
 
 @bot.message_handler(func=lambda msg: True, content_types=['text', 'audio', 'photo', 'video', 'document', 'sticker', 'video_note', 'poll', 'location', 'contact'])
@@ -316,9 +332,9 @@ def handle_text(message):
         update_free_usages(user_id)
         free_usages = fetch_free_usages(user_id)
 
-        if input_text == 'correction':
+        if input_text == 'fix it':
             corrected_text = grammar_correction(text)
-            formatted_corrected_text = f"Corrected: {corrected_text}"
+            formatted_corrected_text = f"Fixed: {corrected_text}"
             tts = gTTS(text=formatted_corrected_text, lang='en')
             tts.save('corrected_text.mp3')
             audio = open('corrected_text.mp3', 'rb')
@@ -338,9 +354,9 @@ def handle_text(message):
             os.remove('corrected_text.mp3')
             save_texts(formatted_corrected_text)
 
-        elif input_text == 'paraphrase':
+        elif input_text == 'improve it':
             paraphrased_text = paraphrasing(text)
-            formatted_paraphrased_text = f"Paraphrased: {paraphrased_text}"
+            formatted_paraphrased_text = f"Improved: {paraphrased_text}"
             tts = gTTS(text=formatted_paraphrased_text, lang='en')
             tts.save('paraphrased_text.mp3')
             audio = open('paraphrased_text.mp3', 'rb')
@@ -399,7 +415,33 @@ def handle_voice(message):
     free_usages = fetch_free_usages(user_id)
     paid_status = fetch_paid_status(user_id)
 
+    voice_duration = message.voice.duration
+    print(voice_duration)
+
+    # If user is not in the dictionary, add them
+    if user_id not in user_voice_durations and paid_status == True:
+        user_voice_durations[user_id] = {
+            "total_duration": 0,
+            "start_date": datetime.datetime.today()
+        }
+
+    user_info = user_voice_durations[user_id]
+
+    # If more than an hour has passed since the last message, reset the total duration
+    if datetime.date.today() != user_info["start_date"] and paid_status == True:
+        user_info["total_duration"] = 0
+        user_info["start_date"] = datetime.datetime.today()
+
+    # If the total duration with the new message exceeds 240 minutes, send a warning
+    if user_info["total_duration"] + voice_duration > 240*60 and paid_status == True:
+        bot.reply_to(message, "You have reached the limit for the day.")
+        return
+    elif paid_status == True:
+        user_info["total_duration"] += voice_duration
+        # print(user_info["total_duration"])
+
     # Add the inline buttons
+    payment_link = initiate_payment(str(message.chat.id))
     subscribe_button = types.InlineKeyboardButton(
         "Subscribe Now", url=f"{payment_link}")
     free_usages_button = types.InlineKeyboardButton(
@@ -432,13 +474,13 @@ def handle_voice(message):
     # Convert the audio file to the WAV format using pydub
     audio = AudioSegment.from_file(file_path, format="ogg")
     # Calculate the duration of the audio file
-    duration = int(len(audio) / 1000)  # Duration in seconds
-    update_duration(duration, user_id)
-    # See how much duration is left
-    duration_left = fetch_duration_left(user_id)
-    if duration_left <= 0:
-        bot.reply_to(message.chat.id,
-                     "You have used up all your full duration. Please wait to continue using the service. 🙏🏻")
+    # duration = int(len(audio) / 1000)  # Duration in seconds
+    # update_duration(duration, user_id)
+    # # See how much duration is left
+    # duration_left = fetch_duration_left(user_id)
+    # if duration_left <= 0:
+    #     bot.reply_to(message.chat.id,
+    #                  "You have used up all your full duration. Please wait to continue using the service. 🙏🏻")
 
     wav_file_path = file_path + ".wav"
     audio.export(wav_file_path, format="wav")

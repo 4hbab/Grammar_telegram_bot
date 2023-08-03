@@ -18,7 +18,7 @@ def update_user_paid_status(id):
     conn = psycopg2.connect(f"{DATABASE_URL}")
     cur = conn.cursor()
     cur.execute(
-        "UPDATE users SET paid_status = true, free_usages_left = 1000, duration_left = 200 WHERE user_id = %s", (id,))
+        "UPDATE users SET paid_status = true, free_usages_left = 1000 WHERE user_id = %s", (id,))
     # Set the subscription date to today's date
     today = datetime.date.now()
     cur.execute(
