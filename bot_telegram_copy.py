@@ -424,16 +424,15 @@ def handle_voice(message):
             "total_duration": 0,
             "start_date": datetime.datetime.today()
         }
-
-    user_info = user_voice_durations[user_id]
+        user_info = user_voice_durations[user_id]
 
     # If more than an hour has passed since the last message, reset the total duration
-    if datetime.date.today() != user_info["start_date"] and paid_status == True:
+    if paid_status == True and datetime.date.today() != user_info["start_date"]:
         user_info["total_duration"] = 0
         user_info["start_date"] = datetime.datetime.today()
 
     # If the total duration with the new message exceeds 240 minutes, send a warning
-    if user_info["total_duration"] + voice_duration > 240*60 and paid_status == True:
+    if paid_status == True and user_info["total_duration"] + voice_duration > 240*60:
         bot.reply_to(message, "You have reached the limit for the day.")
         return
     elif paid_status == True:
